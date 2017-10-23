@@ -1,3 +1,4 @@
+# Shiny app to replicate Splinetool.exe
 library(tidyverse)
 library(GSIF)
 library(shiny)
@@ -19,8 +20,7 @@ scm2 <-
                       values = c('darkblue' = 'darkblue', 'red' = 'red')) 
 
 ui <- fluidPage(
-  tags$head(includeHTML('gtag.txt')),
-                   titlePanel("SplineApp"), 
+  titlePanel("SplineApp"), 
   tags$hr(),
   
   fluidRow(
@@ -70,7 +70,10 @@ $ UD   : int  0 20 50 80 0 25 65 90 120
 $ LD   : int  10 30 60 90 10 35 80 100 135
 $ VALUE: num  7.6 7.5 6.5 3.2 7.5 7.6 6.3 3.4 4.3'),
                       tags$p('The first column is a site identifier and can be numeric or text. The next two columns are upper and lower sample depths respectively, measured in centimeters below ground level. The final column contains the attribute values to be splined.'),
-                      tags$p('Simply upload your csv and press the \'Calculate Splines\' button. Outputs can be viewed in the Plot tab, and customised in the Options tab. The Export tab will allow download of outputs in csv format, or as an rds file containing the R object returned by', tags$code('GSIF::mpspline'), '.'), tags$hr()),
+                      tags$p('Simply upload your csv and press the \'Calculate Splines\' button. Outputs can be viewed in the Plot tab, and customised in the Options tab. The Export tab will allow download of outputs in csv format, or as an rds file containing the R object returned by', tags$code('GSIF::mpspline'), '.'), tags$hr(),
+tags$h4('Update History'),
+tags$ul(tags$li('2017-10-23: Added plot scaling options, handled bug in lowest 1cm depth data'), 
+        tags$li('2017-10-22: App launch'))),
              # output display
              tabPanel(title = tags$h3('Plot'), value = 'Ppanel',
               fluidRow(conditionalPanel('input.SID && input.splinetime',
@@ -90,7 +93,17 @@ $ VALUE: num  7.6 7.5 6.5 3.2 7.5 7.6 6.3 3.4 4.3'),
                                                 label = 'Save plot as png',
                                                 class = 'dlb-sml'),
                        tags$head(tags$style(".dlb-sml{margin-top: 25px; width: 80%;}"))
-                       ))), tags$br()
+                       )),
+              fluidRow(column(width = 3, offset = 1,
+                              selectInput(inputId = 'plot_scale',
+                                          label   = 'Plot Scale',
+                                          choices = list('Scale to site'          = 1, 
+                                                         'Scale to quantile 0.75' = 2,
+                                                         'Scale to quantile 0.95' = 3,
+                                                         'Scale to whole dataset' = 4),
+                                          selected = 1,
+                                          multiple = FALSE,
+                                          width = '80%')))), tags$br()
               ), # end plot area
               fluidRow(
                 conditionalPanel('input.SID && input.splinetime', tags$hr(), 
@@ -184,7 +197,9 @@ $ VALUE: num  7.6 7.5 6.5 3.2 7.5 7.6 6.3 3.4 4.3'),
                            ) # end export wellpanel
                    ))) # end export tabpanel
              )) #end main 
-    ))
+    ),
+includeHTML('gtag.txt')
+)
 
 ####################################################################################################
 
@@ -311,7 +326,7 @@ server <- function(input, output, session) {
    so <- cbind('SID' = splined()$idcol, 
                  splined()$var.std[, 1:(ncol(splined()$var.std) - 1)])
    
-   # whoever decided to name the output columns like this owes me an apology beer
+   # >:-(
    names(so) <- gsub(' cm', '', names(so))
    
    so <- tidyr::gather(so, key = LAYERS, value = SPLINED_VALUE, 2:ncol(so)) %>%
@@ -331,33 +346,13 @@ cm_out <- reactive({
   co <- tidyr::gather(co, key = DEPTH, value = SPLINED_VALUE, 2:ncol(co), 
                       convert = TRUE) %>%
     dplyr::mutate(SPLINED_VALUE = round(SPLINED_VALUE, rnd_val$default)) %>%
-    dplyr::arrange(SID, DEPTH)
+    dplyr::arrange(SID, DEPTH) %>%
+    # BUG: repeats depth value in attrib field where NA above :(
+    dplyr::filter(!(DEPTH == max(DEPTH, na.rm = TRUE))) 
   co
 })
  
  ## Plot data
- 
- # get input XY lims to keep graph consistently sized across sites
- sp_xmin <- reactive({
-   floor(min(min(to_be_splined()[, 4],   na.rm = TRUE),
-             min(sd_out()$SPLINED_VALUE, na.rm = TRUE),
-             min(cm_out()$SPLINED_VALUE, na.rm = TRUE)))
- })
- sp_xmax <- reactive({
-   ceiling(max(max(to_be_splined()[, 4],   na.rm = TRUE),
-               max(sd_out()$SPLINED_VALUE, na.rm = TRUE),
-               max(cm_out()$SPLINED_VALUE, na.rm = TRUE)))
- })
- sp_ymin <- reactive({
-   floor(min(min(to_be_splined()[, 2], na.rm = TRUE),
-             min(sd_out()$UD,          na.rm = TRUE),
-             min(cm_out()$DEPTH,       na.rm = TRUE))) # usually 0, lbr
- })
- sp_ymax <- reactive({
-   ceiling(max(max(to_be_splined()[, 3], na.rm = TRUE),
-               max(sd_out()$LD,          na.rm = TRUE),
-               max(cm_out()$DEPTH,       na.rm = TRUE)))
- })
  
  # subset for by-site plot
  plot_tbs <- reactive({
@@ -365,11 +360,71 @@ cm_out <- reactive({
  })
  plot_sd_out <- reactive({ 
   so <- sd_out()[sd_out()$SID == input$SID, ]
-  tidyr::gather(so, key, value = DEPTH, UD, LD)
+  so <- tidyr::gather(so, key, value = DEPTH, UD, LD)
+  filter(so, !(is.na(SPLINED_VALUE)))
  })
  plot_cm_out <- reactive({
-   cm_out()[cm_out()$SID == input$SID, ]
+   co <- cm_out()[cm_out()$SID == input$SID, ]
+   filter(co, !(is.na(SPLINED_VALUE)))
  })
+ 
+ # get input XY lims to keep graph consistently sized across sites
+ # max values have Options
+ sp_xmin <- reactive({
+   floor(min(min(to_be_splined()[, 4],   na.rm = TRUE),
+             min(sd_out()$SPLINED_VALUE, na.rm = TRUE),
+             min(cm_out()$SPLINED_VALUE, na.rm = TRUE)))
+ })
+ 
+ sp_xmax <- reactive({
+   if(input$plot_scale == 1) {
+     ceiling(max(max(plot_tbs()[, 4],   na.rm = TRUE),
+                 max(plot_sd_out()$SPLINED_VALUE, na.rm = TRUE),
+                 max(plot_cm_out()$SPLINED_VALUE, na.rm = TRUE)))
+   } else if(input$plot_scale == 2) {
+     ceiling(max(quantile(unlist(to_be_splined()[, 4]), 
+                          probs = 0.75, na.rm = TRUE, names = FALSE),
+                 quantile(sd_out()$SPLINED_VALUE, probs = 0.75, na.rm = TRUE, names = FALSE),
+                 quantile(cm_out()$SPLINED_VALUE, probs = 0.75, na.rm = TRUE, names = FALSE)))
+   } else if(input$plot_scale == 3) {
+     ceiling(max(quantile(unlist(to_be_splined()[, 4]), 
+                          probs = 0.95, na.rm = TRUE, names = FALSE),
+                 quantile(sd_out()$SPLINED_VALUE, probs = 0.95, na.rm = TRUE, names = FALSE),
+                 quantile(cm_out()$SPLINED_VALUE, probs = 0.95, na.rm = TRUE, names = FALSE)))
+   } else {
+     ceiling(max(max(to_be_splined()[, 4],   na.rm = TRUE),
+                 max(sd_out()$SPLINED_VALUE, na.rm = TRUE),
+                 max(cm_out()$SPLINED_VALUE, na.rm = TRUE)))
+   }
+ })
+
+ sp_ymin <- reactive({
+   floor(min(min(to_be_splined()[, 2], na.rm = TRUE),
+             min(sd_out()$UD,          na.rm = TRUE),
+             min(cm_out()$DEPTH,       na.rm = TRUE))) # usually 0, lbr
+ })
+ 
+     sp_ymax <- reactive({
+       if(input$plot_scale == 1) {
+         ceiling(max(max(plot_tbs()[, 3],   na.rm = TRUE),
+                     max(plot_sd_out()$DEPTH, na.rm = TRUE),
+                     max(plot_cm_out()$DEPTH, na.rm = TRUE)))
+       } else if(input$plot_scale == 2) {
+         ceiling(max(quantile(unlist(to_be_splined()[, 3]),   probs = 0.75, 
+                              na.rm = TRUE, names = FALSE),
+                     quantile(sd_out()$LD, probs = 0.75, na.rm = TRUE, names = FALSE),
+                     quantile(cm_out()$LD, probs = 0.75, na.rm = TRUE, names = FALSE)))
+       } else if(input$plot_scale == 3) {
+         ceiling(max(quantile(unlist(to_be_splined()[, 3]),   probs = 0.95, 
+                              na.rm = TRUE, names = FALSE),
+                     quantile(sd_out()$LD, probs = 0.95, na.rm = TRUE, names = FALSE),
+                     quantile(cm_out()$LD, probs = 0.95, na.rm = TRUE, names = FALSE)))
+       } else {
+         ceiling(max(max(to_be_splined()[, 3],   na.rm = TRUE),
+                     max(sd_out()$LD, na.rm = TRUE),
+                     max(cm_out()$LD, na.rm = TRUE)))
+       }
+     })
  
  ## ggplot setup
  # deploy graph with tickyboxes for any combo of the three geoms
