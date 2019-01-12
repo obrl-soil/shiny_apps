@@ -1,5 +1,7 @@
 # Shiny app to replicate Splinetool.exe
-library(tidyverse)
+library(ggplot2)
+library(tidyr)
+library(readr)
 library(GSIF)
 library(shiny)
 options(stringsAsFactors = FALSE)
