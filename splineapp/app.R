@@ -22,6 +22,7 @@ scm2 <-
                       values = c('darkblue' = 'darkblue', 'red' = 'red'))
 
 ui <- fluidPage(
+  tags$head(includeHTML(("ga.html"))), # analytics
   titlePanel("SplineApp"),
   tags$hr(),
 
