@@ -150,7 +150,7 @@ tags$ul(tags$li('2022-04-17: Updated to use mpspline2, refreshed appearance.'),
                                              width = '50%')) # end lims wellPanel
                       ) #end col 2
                ) # end fluidRow
-               ), # end Settings tabpanel
+               ), # end Settings tab
 
              # Results tab
              tabPanel(title = tags$h3('Results'), value = 'Ppanel',
@@ -321,7 +321,7 @@ observeEvent(input$splinetime, {
 
 ## Process outputs for graphing and csv export
 # expose desired output rounding val to user (settings panel)
-rnd_val <- reactiveValues(default = 3 )
+rnd_val <- reactiveValues(default = 3)
 observe({ rnd_val$default <- input$rnd })
 
 ## Process standard depths
@@ -352,6 +352,9 @@ plot_sd_out <- reactive({
   so <- dplyr::select(so, everything(), SPLINED_VALUE)
   dplyr::filter(so, !(is.na(SPLINED_VALUE)))
   })
+
+# helps prevent plotting where splining failed
+can_plot <- reactive({ nrow(plot_sd_out()) > 0 })
 
 plot_cm_out <- reactive({
   co <- cm_out()[cm_out()[[1]] == input$SID, ]
@@ -462,8 +465,7 @@ sd_plot <- reactive({
   # NB geom_step has a funny interaction with scale_*_reverse - do not use
   geom_path(data    = plot_sd_out(),
             mapping = aes(x = DEPTH, y = SPLINED_VALUE, col = 'darkblue'),
-            size    = 1,
-            direction = 'hv')
+            size    = 1)
 
   })
 
@@ -511,7 +513,13 @@ out_plot <- reactive({
                     }
   })
 
- output$splineplot <- renderPlot({ out_plot() })
+ output$splineplot <- renderPlot({
+
+   validate(need(can_plot(),
+                 paste0('Data for ', input$SID, ' could not be splined.')))
+   out_plot()
+
+   })
 
   output$splinetable_sd <- DT::renderDT({
     req(input$SID)
