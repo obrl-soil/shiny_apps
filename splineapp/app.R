@@ -8,18 +8,22 @@ options(stringsAsFactors = FALSE)
 
 # for plotting
 sfm <-
-  scale_fill_manual(name = 'Input data', guide = 'legend', labels = '',
-                    values = c('grey50' = 'grey50'))
+  ggplot2::scale_fill_manual(name   = 'Input data',
+                             guide  = 'legend',
+                             labels = '',
+                             values = c('grey50' = 'grey50'))
 scm <-
-  scale_colour_manual(name = 'Output data',
-                      labels = c('Depth layers', '1cm increments'),
-                      guide = 'legend',
-                      values = c('darkblue' = 'darkblue', 'red' = 'red'))
+  ggplot2::scale_colour_manual(name   = 'Output data',
+                               labels = c('Depth layers', '1cm increments'),
+                               guide  = 'legend',
+                               values = c('darkblue' = 'darkblue',
+                                          'red'      = 'red'))
 scm2 <-
-  scale_colour_manual(name = 'Output data',
-                      labels = c('1cm increments', 'Depth layers'),
-                      guide = 'legend',
-                      values = c('darkblue' = 'darkblue', 'red' = 'red'))
+  ggplot2::scale_colour_manual(name   = 'Output data',
+                               labels = c('1cm increments', 'Depth layers'),
+                               guide  = 'legend',
+                               values = c('darkblue' = 'darkblue',
+                                          'red'      = 'red'))
 
 ui <- fluidPage(
   tags$head(includeHTML(("ga.html"))), # analytics
