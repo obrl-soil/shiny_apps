@@ -204,7 +204,7 @@ tags$ul(tags$li('2022-04-17: Updated to use mpspline2, refreshed appearance.'),
                                           class = 'dlb'),
                            tags$br(), tags$br(),
                            downloadButton(outputId = 'dl_rds',
-                                          label = 'Full output of GSIF::mpspline as rds',
+                                          label = 'Full output of mpspline2::mpspline_tidy() as rds',
                                           class = 'dlb'),
                            tags$head(tags$style(".dlb{width: 100%;}"))
                            ) # end export wellpanel
