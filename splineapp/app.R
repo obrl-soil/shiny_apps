@@ -2,7 +2,7 @@
 library(ggplot2)
 library(tidyr)
 library(readr)
-library(GSIF)
+library(mpspline2)
 library(shiny)
 options(stringsAsFactors = FALSE)
 
@@ -159,8 +159,8 @@ tags$ul(tags$li('2022-04-17: Updated to use mpspline2, refreshed appearance.'),
                 column(width = 6, offset = 1, tags$br(),
                        checkboxGroupInput(inputId = 'pick_geoms',
                                           label = NULL,
-                                          choices = list('Original' = 1,
-                                                         'Depth layers' = 2,
+                                          choices = list('Original'       = 1,
+                                                         'Depth layers'   = 2,
                                                          '1cm increments' = 3),
                                           selected = c(1,2,3),
                                           inline = TRUE,
@@ -195,8 +195,8 @@ tags$ul(tags$li('2022-04-17: Updated to use mpspline2, refreshed appearance.'),
                  fluidRow(tags$br(),
                    column(width = 6, offset = 3,
                    wellPanel(downloadButton(outputId = 'dl_sd',
-                                          label = 'Resampled depth intervals as csv',
-                                          class = 'dlb'),
+                                            label = 'Resampled depth intervals as csv',
+                                            class = 'dlb'),
                            tags$br(), tags$br(),
                            downloadButton(outputId = 'dl_1cm',
                                           label = '1cm depth intervals as csv',
@@ -241,269 +241,285 @@ server <- function(input, output, session) {
                    paging = FALSE, searching = FALSE, info = FALSE)
   )
 
- ### MAIN
+### MAIN
 
- ## make soil profile collection for mpspline
- spline_in_spc <- reactive({
-   cn <- names(to_be_splined())
-   new('SoilProfileCollection',
-       idcol     = cn[1],
-       depthcols = c(cn[2:3]),
-       # this class can't handle tbl, tbl-df :/
-       horizons  = data.frame(to_be_splined(),
-                              stringsAsFactors = FALSE),
-       site      = data.frame(unique(to_be_splined()[ , 1]),
-                              stringsAsFactors = FALSE))
- })
+# Deal with default and custom depth ranges
+# expose mpspline inputs to user with defaults set (settings panel)
+out_ranges <- reactiveValues('default' = c(0, 5, 15, 30, 60, 100, 200))
 
- # Deal with default and custom depth ranges
- # expose mpspline inputs to user with defaults set (settings panel)
- out_ranges <- reactiveValues('default' = c(0,5,15,30,60,100,200))
+## get custom depth choices
+observe({
+  if(input$cd_add > 0) {
+    out_ranges$custom <- c(isolate(out_ranges$custom), isolate(input$cd))
+    if(!(0 %in% isolate(out_ranges$custom))) {
+      out_ranges$custom <- c(0, isolate(out_ranges$custom))
+      }
+    out_ranges$custom <- unique(isolate(out_ranges$custom))
+    updateNumericInput(session, inputId = "cd", value = '')
+    }
+  })
 
- # # get custom depth choices
- observe({
-   if(input$cd_add > 0) {
-     out_ranges$custom <- c(isolate(out_ranges$custom), isolate(input$cd))
-     if(!(0 %in% isolate(out_ranges$custom))) {
-       out_ranges$custom <- c(0, isolate(out_ranges$custom))
-     }
-     out_ranges$custom <- unique(isolate(out_ranges$custom))
-     updateNumericInput(session, inputId = "cd", value = '')
-   }
- })
-
- output$cd_vals <- renderText({
-   req(out_ranges$custom)
+output$cd_vals <- renderText({
+  req(out_ranges$custom)
    paste0('Custom depths chosen: ', toString(sort(out_ranges$custom)), ' cm')
- })
+  })
 
- # handle depth-range reset
- observe({
-   if(input$cd_reset > 0) {
-     out_ranges$custom <- NULL
-     updateRadioButtons(session, 'depth_choice', selected = 'sd')
-   }
- })
+# handle depth-range reset
+observe({
+  if(input$cd_reset > 0) {
+    out_ranges$custom <- NULL
+    updateRadioButtons(session, 'depth_choice', selected = 'sd')
+    }
+  })
 
- # get custom lambda
- lambda      <- reactiveValues('val' = 0.1)
- observe({ lambda$val <- input$c_ld })
+# get custom lambda
+lambda      <- reactiveValues('val' = 0.1)
 
- # get custom min/max depths
- out_lims <- reactiveValues(minval = 0, maxval = 1000)
- observe({
-   out_lims$minval <- input$low_lim
-   out_lims$maxval <- input$high_lim
- })
+observe({ lambda$val <- input$c_ld })
 
- ## spline data - output = list of four
- splined <- eventReactive(input$splinetime, {
+# get custom min/max depths
+out_lims <- reactiveValues(minval = 0, maxval = 1000)
+observe({
+  out_lims$minval <- input$low_lim
+  out_lims$maxval <- input$high_lim
+  })
 
-   # get depths
-   use_depths <- if(input$depth_choice == 'ns') {
-     out_ranges$custom
-   } else {
-     out_ranges$default
-   }
+## spline data - output = list of four
+splined <- eventReactive(input$splinetime, {
 
-   # get lambda
-   use_lambda <- lambda$val
+  # get depths
+  use_depths <- if(input$depth_choice == 'ns') {
+    out_ranges$custom
+    } else {
+      out_ranges$default
+    }
 
-   # get outlims
-   use_minval <- out_lims$minval
-   use_maxval <- out_lims$maxval
+  # get lambda
+  use_lambda <- lambda$val
 
-   GSIF::mpspline(obj           = spline_in_spc(),
-                  var.name      = names(spline_in_spc())[4],
-                  lam           = use_lambda,
-                  d             = use_depths,
-                  vlow          = use_minval,
-                  vhigh         = use_maxval,
-                  show.progress = FALSE)
- })
+  # get outlims
+  use_minval <- out_lims$minval
+  use_maxval <- out_lims$maxval
 
- # when 'Process Spline' button is clicked, jump to plot/output tab
- observeEvent(input$splinetime, {
-   updateTabsetPanel(session, "maintabs", selected = "Ppanel")
- })
+  mpspline2::mpspline_tidy(
+    obj           = to_be_splined(),
+    var_name      = names(to_be_splined()[4]),
+    lam           = use_lambda,
+    d             = use_depths,
+    vlow          = use_minval,
+    vhigh         = use_maxval
+    )
+  })
 
- ## Process outputs for graphing and csv export
- # expose desired output rounding val to user (settings panel)
- rnd_val <- reactiveValues(default = 3 )
- observe({ rnd_val$default <- input$rnd })
+# when 'Process Spline' button is clicked, jump to plot/output tab
+observeEvent(input$splinetime, {
+  updateTabsetPanel(session, "maintabs", selected = "Ppanel")
+  })
 
- ## Process standard depths
- sd_out <- reactive({
-   so <- cbind('SID' = splined()$idcol,
-                 splined()$var.std[, 1:(ncol(splined()$var.std) - 1)])
+## Process outputs for graphing and csv export
+# expose desired output rounding val to user (settings panel)
+rnd_val <- reactiveValues(default = 3 )
+observe({ rnd_val$default <- input$rnd })
 
-   # >:-(
-   names(so) <- gsub(' cm', '', names(so))
-
-   so <- tidyr::gather(so, key = LAYERS, value = SPLINED_VALUE, 2:ncol(so)) %>%
-     tidyr::separate(col = LAYERS, into = c('UD', 'LD'),
-                     sep = '-', convert = TRUE) %>%
-     dplyr::mutate(SPLINED_VALUE = round(SPLINED_VALUE, rnd_val$default)) %>%
-     dplyr::arrange(SID, UD)
-   so
+## Process standard depths
+sd_out <- reactive({
+   splined()$est_dcm %>%
+     dplyr::mutate(SPLINED_VALUE = round(SPLINED_VALUE, rnd_val$default))
  })
 
 ## Process 1cm depths
 cm_out <- reactive({
-  co <- data.frame('SID' = splined()$idcol,
-                         t(splined()$var.1cm))
-
-  names(co) <- c('SID', paste0(1:(ncol(co) - 1)))
-  co <- tidyr::gather(co, key = DEPTH, value = SPLINED_VALUE, 2:ncol(co),
-                      convert = TRUE) %>%
-    dplyr::mutate(SPLINED_VALUE = round(SPLINED_VALUE, rnd_val$default)) %>%
-    dplyr::arrange(SID, DEPTH) %>%
-    # BUG: repeats depth value in attrib field where NA above :(
-    dplyr::filter(!(DEPTH == max(DEPTH, na.rm = TRUE)))
-  co
+  splined()$est_1cm %>%
+    dplyr::mutate(SPLINED_VALUE = round(SPLINED_VALUE, rnd_val$default))
 })
 
- ## Plot data
+## Plot data
 
- # subset for by-site plot
- plot_tbs <- reactive({
-   to_be_splined()[to_be_splined()[, 1] == input$SID, ]
- })
- plot_sd_out <- reactive({
-  so <- sd_out()[sd_out()$SID == input$SID, ]
-  so <- tidyr::gather(so, key, value = DEPTH, UD, LD)
-  filter(so, !(is.na(SPLINED_VALUE)))
- })
- plot_cm_out <- reactive({
-   co <- cm_out()[cm_out()$SID == input$SID, ]
-   filter(co, !(is.na(SPLINED_VALUE)))
- })
+# subset for by-site plot
+plot_tbs <- reactive({
+  to_be_splined()[to_be_splined()[[1]] == input$SID, ]
+  })
 
- # get input XY lims to keep graph consistently sized across sites
- # max values have Options
- sp_xmin <- reactive({
-   floor(min(min(to_be_splined()[, 4],   na.rm = TRUE),
-             min(sd_out()$SPLINED_VALUE, na.rm = TRUE),
-             min(cm_out()$SPLINED_VALUE, na.rm = TRUE)))
- })
+plot_sd_out <- reactive({
+  so <- sd_out()[sd_out()[[1]] == input$SID, ]
+  so <- tidyr::pivot_longer(data      = so,
+                            cols      = c('UD', 'LD'),
+                            names_to  = 'key',
+                            values_to = 'DEPTH')
+  so <- dplyr::select(so, everything(), SPLINED_VALUE)
+  dplyr::filter(so, !(is.na(SPLINED_VALUE)))
+  })
 
- sp_xmax <- reactive({
-   if(input$plot_scale == 1) {
-     ceiling(max(max(plot_tbs()[, 4],   na.rm = TRUE),
-                 max(plot_sd_out()$SPLINED_VALUE, na.rm = TRUE),
-                 max(plot_cm_out()$SPLINED_VALUE, na.rm = TRUE)))
-   } else if(input$plot_scale == 2) {
-     ceiling(max(quantile(unlist(to_be_splined()[, 4]),
-                          probs = 0.75, na.rm = TRUE, names = FALSE),
-                 quantile(sd_out()$SPLINED_VALUE, probs = 0.75, na.rm = TRUE, names = FALSE),
-                 quantile(cm_out()$SPLINED_VALUE, probs = 0.75, na.rm = TRUE, names = FALSE)))
-   } else if(input$plot_scale == 3) {
-     ceiling(max(quantile(unlist(to_be_splined()[, 4]),
-                          probs = 0.95, na.rm = TRUE, names = FALSE),
-                 quantile(sd_out()$SPLINED_VALUE, probs = 0.95, na.rm = TRUE, names = FALSE),
-                 quantile(cm_out()$SPLINED_VALUE, probs = 0.95, na.rm = TRUE, names = FALSE)))
+plot_cm_out <- reactive({
+  co <- cm_out()[cm_out()[[1]] == input$SID, ]
+  co <- tidyr::pivot_longer(data      = co,
+                             cols      = c(UD, LD),
+                             names_to  = 'key',
+                             values_to = 'DEPTH')
+  co <- dplyr::select(co, everything(), SPLINED_VALUE)
+  co <- dplyr::filter(co, !(is.na(SPLINED_VALUE)))
+  dplyr::filter(co, key != 'UD')
+  })
+
+# get input XY lims to keep graph consistently sized across sites
+# max values have Options
+sp_xmin <- reactive({
+  floor(min(min(to_be_splined()[[4]],   na.rm = TRUE),
+            min(sd_out()$SPLINED_VALUE, na.rm = TRUE),
+            min(cm_out()$SPLINED_VALUE, na.rm = TRUE)))
+  })
+
+sp_xmax <- reactive({
+  if(input$plot_scale == 1) {
+    ceiling(max(max(plot_tbs()[[4]],   na.rm = TRUE),
+                max(plot_sd_out()$SPLINED_VALUE, na.rm = TRUE),
+                max(plot_cm_out()$SPLINED_VALUE, na.rm = TRUE)))
+    } else if(input$plot_scale == 2) {
+      ceiling(max(quantile(to_be_splined()[[4]],
+                           probs = 0.75, na.rm = TRUE, names = FALSE),
+                  quantile(sd_out()$SPLINED_VALUE, probs = 0.75, na.rm = TRUE,
+                           names = FALSE),
+                  quantile(cm_out()$SPLINED_VALUE, probs = 0.75, na.rm = TRUE,
+                           names = FALSE)))
+      } else if(input$plot_scale == 3) {
+        ceiling(max(quantile(to_be_splined()[[4]],
+                             probs = 0.95, na.rm = TRUE, names = FALSE),
+                    quantile(sd_out()$SPLINED_VALUE, probs = 0.95, na.rm = TRUE,
+                             names = FALSE),
+                    quantile(cm_out()$SPLINED_VALUE, probs = 0.95, na.rm = TRUE,
+                             names = FALSE)))
+        } else {
+          ceiling(max(max(to_be_splined()[[4]],   na.rm = TRUE),
+                      max(sd_out()$SPLINED_VALUE, na.rm = TRUE),
+                      max(cm_out()$SPLINED_VALUE, na.rm = TRUE)))
+        }
+  })
+
+sp_ymin <- reactive({
+  floor(min(min(to_be_splined()[[2]], na.rm = TRUE),
+            min(sd_out()$UD,          na.rm = TRUE),
+            min(cm_out()$UD,       na.rm = TRUE))) # usually 0, lbr
+  })
+
+sp_ymax <- reactive({
+  if(input$plot_scale == 1) {
+    ceiling(max(max(plot_tbs()[[3]],   na.rm = TRUE),
+                max(plot_sd_out()$DEPTH, na.rm = TRUE),
+                max(plot_cm_out()$DEPTH, na.rm = TRUE)))
+    } else if(input$plot_scale == 2) {
+      ceiling(max(quantile(unlist(to_be_splined()[[3]]),   probs = 0.75,
+                           na.rm = TRUE, names = FALSE),
+                  quantile(sd_out()$LD, probs = 0.75, na.rm = TRUE,
+                           names = FALSE),
+                  quantile(cm_out()$LD, probs = 0.75, na.rm = TRUE,
+                           names = FALSE)))
+      } else if(input$plot_scale == 3) {
+        ceiling(max(quantile(unlist(to_be_splined()[[3]]),   probs = 0.95,
+                          na.rm = TRUE, names = FALSE),
+                    quantile(sd_out()$LD, probs = 0.95, na.rm = TRUE,
+                             names = FALSE),
+                    quantile(cm_out()$LD, probs = 0.95, na.rm = TRUE,
+                             names = FALSE)))
    } else {
-     ceiling(max(max(to_be_splined()[, 4],   na.rm = TRUE),
-                 max(sd_out()$SPLINED_VALUE, na.rm = TRUE),
-                 max(cm_out()$SPLINED_VALUE, na.rm = TRUE)))
+     ceiling(max(max(to_be_splined()[[3]],   na.rm = TRUE),
+                 max(sd_out()$LD, na.rm = TRUE),
+                 max(cm_out()$LD, na.rm = TRUE)))
    }
  })
 
- sp_ymin <- reactive({
-   floor(min(min(to_be_splined()[, 2], na.rm = TRUE),
-             min(sd_out()$UD,          na.rm = TRUE),
-             min(cm_out()$DEPTH,       na.rm = TRUE))) # usually 0, lbr
- })
+## ggplot setup
+# deploy graph with tickyboxes for any combo of the three geoms
 
-     sp_ymax <- reactive({
-       if(input$plot_scale == 1) {
-         ceiling(max(max(plot_tbs()[, 3],   na.rm = TRUE),
-                     max(plot_sd_out()$DEPTH, na.rm = TRUE),
-                     max(plot_cm_out()$DEPTH, na.rm = TRUE)))
-       } else if(input$plot_scale == 2) {
-         ceiling(max(quantile(unlist(to_be_splined()[, 3]),   probs = 0.75,
-                              na.rm = TRUE, names = FALSE),
-                     quantile(sd_out()$LD, probs = 0.75, na.rm = TRUE, names = FALSE),
-                     quantile(cm_out()$LD, probs = 0.75, na.rm = TRUE, names = FALSE)))
-       } else if(input$plot_scale == 3) {
-         ceiling(max(quantile(unlist(to_be_splined()[, 3]),   probs = 0.95,
-                              na.rm = TRUE, names = FALSE),
-                     quantile(sd_out()$LD, probs = 0.95, na.rm = TRUE, names = FALSE),
-                     quantile(cm_out()$LD, probs = 0.95, na.rm = TRUE, names = FALSE)))
-       } else {
-         ceiling(max(max(to_be_splined()[, 3],   na.rm = TRUE),
-                     max(sd_out()$LD, na.rm = TRUE),
-                     max(cm_out()$LD, na.rm = TRUE)))
-       }
-     })
+base_plot <- reactive({
 
- ## ggplot setup
- # deploy graph with tickyboxes for any combo of the three geoms
+  ggplot() +
+    scale_x_reverse(name      = 'Soil Depth',
+                    limits    = c(sp_ymax(), sp_ymin())) +
+    scale_y_continuous(name   = 'Analyte Value',
+                       limits = c(sp_xmin(), sp_xmax())) +
+    guides(alpha = 'none',
+           fill = guide_legend(override.aes = list(alpha = 0.5))) +
+    coord_flip() +
+    theme_minimal() +
+    ggtitle('Spline data', subtitle = paste0('Site ', input$SID))
 
- base_plot <- reactive({ ggplot() +
-   scale_x_reverse(name = 'Soil Depth', limits = c(sp_ymax(), sp_ymin())) +
-   scale_y_continuous(name = 'Analyte Value', limits = c(sp_xmin(), sp_xmax())) +
-   guides(alpha = FALSE,
-          fill = guide_legend(override.aes = list(alpha = 0.5))) +
-   coord_flip() +
-   ggtitle('Spline data', subtitle = paste0('Site ', input$SID)) })
+   })
 
- in_plot <- reactive({
-   geom_rect(data    = plot_tbs(),
-             mapping = aes(ymin = plot_tbs()[, 4], ymax = sp_xmin(),
-                           xmin = plot_tbs()[, 2], xmax = plot_tbs()[, 3],
-                           alpha = 0.5, fill = 'grey50')) })
- sd_plot <- reactive({
-   geom_step(data    = plot_sd_out(),
-             mapping = aes(x = DEPTH, y = SPLINED_VALUE, col = 'darkblue'),
-             size    = 1) })
+in_plot <- reactive({
 
- cm_plot <- reactive({
-   geom_line(data    = plot_cm_out(),
-             mapping = aes(x = DEPTH - 0.5, y = SPLINED_VALUE, col = 'red'),
-             size    = 1) })
+  geom_rect(data    = plot_tbs(),
+            mapping = aes(ymin = plot_tbs()[[4]], ymax = sp_xmin(),
+                          xmin = plot_tbs()[[2]], xmax = plot_tbs()[[3]],
+                          alpha = 0.5, fill = 'grey50'))
 
- out_plot <- reactive({
+  })
 
-   req(input$SID)
-   req(input$splinetime)
+sd_plot <- reactive({
 
-   gopts <- input$pick_geoms
+  geom_step(data    = plot_sd_out(),
+            mapping = aes(x = DEPTH, y = SPLINED_VALUE, col = 'darkblue'),
+            size    = 1,
+            direction = 'hv')
 
-   if(is.null(gopts)) {
-     base_plot()
-   } else if(!('1' %in% gopts) & !('2' %in% gopts) & !('3' %in% gopts)) {
-     base_plot()
-   } else if(('1' %in% gopts) & !('2' %in% gopts) & !('3' %in% gopts)) {
-     base_plot() + in_plot() + sfm
-   } else if(!('1' %in% gopts) & ('2' %in% gopts) & !('3' %in% gopts)) {
-     base_plot() + sd_plot() + scm
-   } else if(!('1' %in% gopts) & !('2' %in% gopts) & ('3' %in% gopts)) {
-     base_plot() + cm_plot() + scm
-   } else if(('1' %in% gopts) & ('2' %in% gopts) & !('3' %in% gopts)) {
-     base_plot() + in_plot() + sd_plot() + sfm + scm
-   } else if(('1' %in% gopts) & !('2' %in% gopts) & ('3' %in% gopts)) {
-     base_plot() + in_plot() + cm_plot() + sfm + scm2
-   } else if(!('1' %in% gopts) & ('2' %in% gopts) & ('3' %in% gopts)) {
-     base_plot() + sd_plot() + cm_plot() + scm
-   } else if(('1' %in% gopts) & ('2' %in% gopts) & ('3' %in% gopts)) {
-     base_plot() + in_plot() + sd_plot() + cm_plot() + sfm + scm
-   }
- })
+  })
+
+cm_plot <- reactive({
+
+  geom_line(data    = plot_cm_out(),
+            mapping = aes(x = DEPTH - 0.5, y = SPLINED_VALUE, col = 'red'),
+            size    = 1)
+
+  })
+
+out_plot <- reactive({
+
+  req(input$SID)
+  req(input$splinetime)
+
+  gopts <- input$pick_geoms
+
+  if(is.null(gopts)) {
+    base_plot()
+    # all unticked
+    } else if(!('1' %in% gopts) & !('2' %in% gopts) & !('3' %in% gopts)) {
+      base_plot()
+      # only input ticked
+      } else if(('1' %in% gopts) & !('2' %in% gopts) & !('3' %in% gopts)) {
+        base_plot() + in_plot() + sfm
+        # only standard output ticked
+        } else if(!('1' %in% gopts) & ('2' %in% gopts) & !('3' %in% gopts)) {
+          base_plot() + sd_plot() + scm
+          # only 1cm output ticked
+          } else if(!('1' %in% gopts) & !('2' %in% gopts) & ('3' %in% gopts)) {
+            base_plot() + cm_plot() + scm
+            # input and standard output ticked
+            } else if(('1' %in% gopts) & ('2' %in% gopts) & !('3' %in% gopts)) {
+              base_plot() + in_plot() + sd_plot() + sfm + scm
+              # input and 1 cm output ticked
+              } else if(('1' %in% gopts) & !('2' %in% gopts) & ('3' %in% gopts)) {
+                base_plot() + in_plot() + cm_plot() + sfm + scm2
+                # standard and 1cm output ticked
+                } else if(!('1' %in% gopts) & ('2' %in% gopts) & ('3' %in% gopts)) {
+                  base_plot() + sd_plot() + cm_plot() + scm
+                  # all options ticked
+                  } else if(('1' %in% gopts) & ('2' %in% gopts) & ('3' %in% gopts)) {
+                    base_plot() + in_plot() + sd_plot() + cm_plot() + sfm + scm
+                    }
+  })
 
  output$splineplot <- renderPlot({ out_plot() })
 
   output$splinetable_sd <- renderDataTable({
     req(input$SID)
     req(input$splinetime)
-    sd_out()[sd_out()$SID == input$SID, ] },
+    sd_out()[sd_out()$PROFILE_ID == input$SID, ] },
     options = list(lengthChange = FALSE, pageLength = 10,
     scrollX = FALSE, scrollY = '300px',
     paging = FALSE, searching = FALSE, info = FALSE))
 
   output$splinetable_cm <- renderDataTable({
     req(input$SID)
-    cm_out()[cm_out()$SID == input$SID, ] },
+    cm_out()[cm_out()$PROFILE_ID == input$SID, ] },
     options = list(lengthChange = FALSE, pageLength = 10,
                    scrollX = FALSE, scrollY = '300px',
                    paging = FALSE, searching = FALSE, info = FALSE))
