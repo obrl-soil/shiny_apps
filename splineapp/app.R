@@ -218,7 +218,7 @@ tags$ul(tags$li('2022-04-17: Updated to use mpspline2, refreshed appearance.'),
 server <- function(input, output, session) {
 
   ### SIDEBAR
-  # recieve data
+  # receive data
   to_be_splined <- eventReactive(input$ld, {
     in_file <- input$file_1
     req(in_file)
@@ -227,9 +227,11 @@ server <- function(input, output, session) {
 
   # Feed SID choices from input df to drop-down box
   observe({
-    updateSelectInput(session, inputId = 'SID',
-                      choices = levels(factor(to_be_splined()[[1]])),
-                      selected = levels(factor(to_be_splined()[[1]]))[1])
+    sids <- levels(factor(to_be_splined()[[1]]))
+    updateSelectInput(session,
+                      inputId  = 'SID',
+                      choices  = sids,
+                      selected = sids[1])
   })
 
   # display loaded data
