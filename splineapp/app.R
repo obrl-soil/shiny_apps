@@ -441,7 +441,7 @@ base_plot <- reactive({
     scale_y_continuous(name   = 'Analyte Value',
                        limits = c(sp_xmin(), sp_xmax())) +
     guides(alpha = 'none',
-           fill = guide_legend(override.aes = list(alpha = 0.5))) +
+           fill  = guide_legend(override.aes = list(alpha = 0.5))) +
     coord_flip() +
     theme_minimal() +
     ggtitle('Spline data', subtitle = paste0('Site ', input$SID))
@@ -459,7 +459,8 @@ in_plot <- reactive({
 
 sd_plot <- reactive({
 
-  geom_step(data    = plot_sd_out(),
+  # NB geom_step has a funny interaction with scale_*_reverse - do not use
+  geom_path(data    = plot_sd_out(),
             mapping = aes(x = DEPTH, y = SPLINED_VALUE, col = 'darkblue'),
             size    = 1,
             direction = 'hv')
