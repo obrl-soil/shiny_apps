@@ -7,24 +7,24 @@ library(shiny)
 options(stringsAsFactors = FALSE)
 
 # for plotting
-sfm <- 
+sfm <-
   scale_fill_manual(name = 'Input data', guide = 'legend', labels = '',
-                    values = c('grey50' = 'grey50')) 
-scm <- 
-  scale_colour_manual(name = 'Output data', 
-                      labels = c('Depth layers', '1cm increments'), 
+                    values = c('grey50' = 'grey50'))
+scm <-
+  scale_colour_manual(name = 'Output data',
+                      labels = c('Depth layers', '1cm increments'),
                       guide = 'legend',
-                      values = c('darkblue' = 'darkblue', 'red' = 'red')) 
+                      values = c('darkblue' = 'darkblue', 'red' = 'red'))
 scm2 <-
-  scale_colour_manual(name = 'Output data', 
-                      labels = c('1cm increments', 'Depth layers'), 
+  scale_colour_manual(name = 'Output data',
+                      labels = c('1cm increments', 'Depth layers'),
                       guide = 'legend',
-                      values = c('darkblue' = 'darkblue', 'red' = 'red')) 
+                      values = c('darkblue' = 'darkblue', 'red' = 'red'))
 
 ui <- fluidPage(
-  titlePanel("SplineApp"), 
+  titlePanel("SplineApp"),
   tags$hr(),
-  
+
   fluidRow(
     column(width = 10,
            fileInput(inputId     = 'file_1', label = 'Input CSV',
@@ -34,17 +34,17 @@ ui <- fluidPage(
                                      '.csv'),
                      width       = '100%',
                      buttonLabel = 'Select File')),
-    column(width = 2, 
-           actionButton(inputId = "ld", label = "Load File", width = '100%') 
+    column(width = 2,
+           actionButton(inputId = "ld", label = "Load File", width = '100%')
            ,style = 'margin-top: 25px; text-align: center;'
            )
     ),
-  
+
   fluidRow(
-    
+
     # sidebar
     column(width = 4,
-           wellPanel( 
+           wellPanel(
              actionButton(inputId = 'splinetime', label = 'Calculate Splines', width = '100%',
                           style = 'font-align:center; font-weight: bold;'),
              tags$br()),
@@ -57,7 +57,7 @@ ui <- fluidPage(
                               dataTableOutput('table_1'))
            )
            ),
-    
+
     # main
     column(width = 8,
            tabsetPanel(id = 'maintabs',
@@ -74,7 +74,7 @@ $ VALUE: num  7.6 7.5 6.5 3.2 7.5 7.6 6.3 3.4 4.3'),
                       tags$p('The first column is a site identifier and can be numeric or text. The next two columns are upper and lower sample depths respectively, measured in centimeters below ground level. The final column contains the attribute values to be splined.'),
                       tags$p('Simply upload your csv and press the \'Calculate Splines\' button. Outputs can be viewed in the Plot tab, and customised in the Options tab. The Export tab will allow download of outputs in csv format, or as an rds file containing the R object returned by', tags$code('GSIF::mpspline'), '.'), tags$hr(),
 tags$h4('Update History'),
-tags$ul(tags$li('2017-10-23: Added plot scaling options, handled bug in lowest 1cm depth data'), 
+tags$ul(tags$li('2017-10-23: Added plot scaling options, handled bug in lowest 1cm depth data'),
         tags$li('2017-10-22: App launch'))),
              # output display
              tabPanel(title = tags$h3('Plot'), value = 'Ppanel',
@@ -99,7 +99,7 @@ tags$ul(tags$li('2017-10-23: Added plot scaling options, handled bug in lowest 1
               fluidRow(column(width = 3, offset = 1,
                               selectInput(inputId = 'plot_scale',
                                           label   = 'Plot Scale',
-                                          choices = list('Scale to site'          = 1, 
+                                          choices = list('Scale to site'          = 1,
                                                          'Scale to quantile 0.75' = 2,
                                                          'Scale to quantile 0.95' = 3,
                                                          'Scale to whole dataset' = 4),
@@ -108,13 +108,13 @@ tags$ul(tags$li('2017-10-23: Added plot scaling options, handled bug in lowest 1
                                           width = '80%')))), tags$br()
               ), # end plot area
               fluidRow(
-                conditionalPanel('input.SID && input.splinetime', tags$hr(), 
+                conditionalPanel('input.SID && input.splinetime', tags$hr(),
                                  tags$h3('Splined output values'),
                 column(width = 6, tags$h4('Depth ranges'),  dataTableOutput('splinetable_sd')),
                 column(width = 6, tags$h4('1cm intervals'), dataTableOutput('splinetable_cm'))
                 )
               ), conditionalPanel('input.SID && input.splinetime', tags$br(), tags$hr())),
-             
+
              # settings
              tabPanel(title = tags$h3('Settings'), value = 'Spanel',
                fluidRow(tags$br(),
@@ -135,13 +135,13 @@ tags$ul(tags$li('2017-10-23: Added plot scaling options, handled bug in lowest 1
                                              width = '100%',
                                              min = 0, max = 1000, step = 1),
                                    tags$i(textOutput(outputId = 'cd_vals')),
-                                   tags$br(), 
-                                   actionButton(inputId = 'cd_add', 
+                                   tags$br(),
+                                   actionButton(inputId = 'cd_add',
                                                 label = 'Add',
                                                 icon = icon('plus'),
                                                 width = '100%'),
                                    tags$br(),tags$br(),
-                                   actionButton(inputId = 'cd_reset', 
+                                   actionButton(inputId = 'cd_reset',
                                                 label =  'Reset',
                                                 icon = icon('undo'),
                                                 width = '100%')
@@ -156,7 +156,7 @@ tags$ul(tags$li('2017-10-23: Added plot scaling options, handled bug in lowest 1
                               value = 3,
                               min = -10, max = 10,
                               width = '50%')
-                 ) # end well panel 2 
+                 ) # end well panel 2
                ), # end column
                column(width = 6,
                       wellPanel(tags$h4('Lambda'),
@@ -180,7 +180,7 @@ tags$ul(tags$li('2017-10-23: Added plot scaling options, handled bug in lowest 1
                       ) #end col 2
                ) # end fluidRow
                ), # end Settings tabpanel
-             
+
                tabPanel(title = tags$h3('Export'), value = 'Epanel',
                  fluidRow(tags$br(),
                    column(width = 6, offset = 3,
@@ -198,7 +198,7 @@ tags$ul(tags$li('2017-10-23: Added plot scaling options, handled bug in lowest 1
                            tags$head(tags$style(".dlb{width: 100%;}"))
                            ) # end export wellpanel
                    ))) # end export tabpanel
-             )) #end main 
+             )) #end main
     ),
 includeHTML('gtag.txt')
 )
@@ -206,7 +206,7 @@ includeHTML('gtag.txt')
 ####################################################################################################
 
 server <- function(input, output, session) {
-  
+
   ### SIDEBAR
   # recieve data
   to_be_splined <- eventReactive(input$ld, {
@@ -214,26 +214,26 @@ server <- function(input, output, session) {
     req(in_file)
     read_csv(in_file$datapath)
     })
-  
+
   # Feed SID choices from input df to drop-down box
   observe({
     updateSelectInput(session, inputId = 'SID',
                       choices = levels(factor(to_be_splined()[[1]])),
-                      selected = levels(factor(to_be_splined()[[1]]))[1])  
+                      selected = levels(factor(to_be_splined()[[1]]))[1])
   })
-  
+
   # display loaded data
   output$table_1 <- renderDataTable({
     req(input$SID)
-    to_be_splined()[to_be_splined()[, 1] == input$SID, ] 
+    to_be_splined()[to_be_splined()[, 1] == input$SID, ]
     },
     options = list(lengthChange = FALSE, pageLength = 10,
                    scrollX = FALSE, scrollY = '300px',
                    paging = FALSE, searching = FALSE, info = FALSE)
   )
-  
+
  ### MAIN
- 
+
  ## make soil profile collection for mpspline
  spline_in_spc <- reactive({
    cn <- names(to_be_splined())
@@ -241,16 +241,16 @@ server <- function(input, output, session) {
        idcol     = cn[1],
        depthcols = c(cn[2:3]),
        # this class can't handle tbl, tbl-df :/
-       horizons  = data.frame(to_be_splined(), 
+       horizons  = data.frame(to_be_splined(),
                               stringsAsFactors = FALSE),
        site      = data.frame(unique(to_be_splined()[ , 1]),
                               stringsAsFactors = FALSE))
  })
- 
+
  # Deal with default and custom depth ranges
  # expose mpspline inputs to user with defaults set (settings panel)
  out_ranges <- reactiveValues('default' = c(0,5,15,30,60,100,200))
- 
+
  # # get custom depth choices
  observe({
    if(input$cd_add > 0) {
@@ -262,12 +262,12 @@ server <- function(input, output, session) {
      updateNumericInput(session, inputId = "cd", value = '')
    }
  })
- 
+
  output$cd_vals <- renderText({
    req(out_ranges$custom)
    paste0('Custom depths chosen: ', toString(sort(out_ranges$custom)), ' cm')
  })
- 
+
  # handle depth-range reset
  observe({
    if(input$cd_reset > 0) {
@@ -275,35 +275,35 @@ server <- function(input, output, session) {
      updateRadioButtons(session, 'depth_choice', selected = 'sd')
    }
  })
- 
+
  # get custom lambda
- lambda      <- reactiveValues('val' = 0.1) 
+ lambda      <- reactiveValues('val' = 0.1)
  observe({ lambda$val <- input$c_ld })
- 
+
  # get custom min/max depths
  out_lims <- reactiveValues(minval = 0, maxval = 1000)
- observe({ 
+ observe({
    out_lims$minval <- input$low_lim
    out_lims$maxval <- input$high_lim
  })
- 
+
  ## spline data - output = list of four
  splined <- eventReactive(input$splinetime, {
-   
+
    # get depths
    use_depths <- if(input$depth_choice == 'ns') {
-     out_ranges$custom 
+     out_ranges$custom
    } else {
      out_ranges$default
    }
-   
+
    # get lambda
    use_lambda <- lambda$val
-   
+
    # get outlims
    use_minval <- out_lims$minval
    use_maxval <- out_lims$maxval
-   
+
    GSIF::mpspline(obj           = spline_in_spc(),
                   var.name      = names(spline_in_spc())[4],
                   lam           = use_lambda,
@@ -312,55 +312,55 @@ server <- function(input, output, session) {
                   vhigh         = use_maxval,
                   show.progress = FALSE)
  })
- 
+
  # when 'Process Spline' button is clicked, jump to plot/output tab
  observeEvent(input$splinetime, {
    updateTabsetPanel(session, "maintabs", selected = "Ppanel")
  })
- 
+
  ## Process outputs for graphing and csv export
  # expose desired output rounding val to user (settings panel)
- rnd_val <- reactiveValues(default = 3 ) 
+ rnd_val <- reactiveValues(default = 3 )
  observe({ rnd_val$default <- input$rnd })
- 
+
  ## Process standard depths
  sd_out <- reactive({
-   so <- cbind('SID' = splined()$idcol, 
+   so <- cbind('SID' = splined()$idcol,
                  splined()$var.std[, 1:(ncol(splined()$var.std) - 1)])
-   
+
    # >:-(
    names(so) <- gsub(' cm', '', names(so))
-   
+
    so <- tidyr::gather(so, key = LAYERS, value = SPLINED_VALUE, 2:ncol(so)) %>%
-     tidyr::separate(col = LAYERS, into = c('UD', 'LD'), 
+     tidyr::separate(col = LAYERS, into = c('UD', 'LD'),
                      sep = '-', convert = TRUE) %>%
      dplyr::mutate(SPLINED_VALUE = round(SPLINED_VALUE, rnd_val$default)) %>%
      dplyr::arrange(SID, UD)
    so
  })
- 
+
 ## Process 1cm depths
-cm_out <- reactive({ 
+cm_out <- reactive({
   co <- data.frame('SID' = splined()$idcol,
                          t(splined()$var.1cm))
-  
-  names(co) <- c('SID', paste0(1:(ncol(co) - 1))) 
-  co <- tidyr::gather(co, key = DEPTH, value = SPLINED_VALUE, 2:ncol(co), 
+
+  names(co) <- c('SID', paste0(1:(ncol(co) - 1)))
+  co <- tidyr::gather(co, key = DEPTH, value = SPLINED_VALUE, 2:ncol(co),
                       convert = TRUE) %>%
     dplyr::mutate(SPLINED_VALUE = round(SPLINED_VALUE, rnd_val$default)) %>%
     dplyr::arrange(SID, DEPTH) %>%
     # BUG: repeats depth value in attrib field where NA above :(
-    dplyr::filter(!(DEPTH == max(DEPTH, na.rm = TRUE))) 
+    dplyr::filter(!(DEPTH == max(DEPTH, na.rm = TRUE)))
   co
 })
- 
+
  ## Plot data
- 
+
  # subset for by-site plot
  plot_tbs <- reactive({
    to_be_splined()[to_be_splined()[, 1] == input$SID, ]
  })
- plot_sd_out <- reactive({ 
+ plot_sd_out <- reactive({
   so <- sd_out()[sd_out()$SID == input$SID, ]
   so <- tidyr::gather(so, key, value = DEPTH, UD, LD)
   filter(so, !(is.na(SPLINED_VALUE)))
@@ -369,7 +369,7 @@ cm_out <- reactive({
    co <- cm_out()[cm_out()$SID == input$SID, ]
    filter(co, !(is.na(SPLINED_VALUE)))
  })
- 
+
  # get input XY lims to keep graph consistently sized across sites
  # max values have Options
  sp_xmin <- reactive({
@@ -377,19 +377,19 @@ cm_out <- reactive({
              min(sd_out()$SPLINED_VALUE, na.rm = TRUE),
              min(cm_out()$SPLINED_VALUE, na.rm = TRUE)))
  })
- 
+
  sp_xmax <- reactive({
    if(input$plot_scale == 1) {
      ceiling(max(max(plot_tbs()[, 4],   na.rm = TRUE),
                  max(plot_sd_out()$SPLINED_VALUE, na.rm = TRUE),
                  max(plot_cm_out()$SPLINED_VALUE, na.rm = TRUE)))
    } else if(input$plot_scale == 2) {
-     ceiling(max(quantile(unlist(to_be_splined()[, 4]), 
+     ceiling(max(quantile(unlist(to_be_splined()[, 4]),
                           probs = 0.75, na.rm = TRUE, names = FALSE),
                  quantile(sd_out()$SPLINED_VALUE, probs = 0.75, na.rm = TRUE, names = FALSE),
                  quantile(cm_out()$SPLINED_VALUE, probs = 0.75, na.rm = TRUE, names = FALSE)))
    } else if(input$plot_scale == 3) {
-     ceiling(max(quantile(unlist(to_be_splined()[, 4]), 
+     ceiling(max(quantile(unlist(to_be_splined()[, 4]),
                           probs = 0.95, na.rm = TRUE, names = FALSE),
                  quantile(sd_out()$SPLINED_VALUE, probs = 0.95, na.rm = TRUE, names = FALSE),
                  quantile(cm_out()$SPLINED_VALUE, probs = 0.95, na.rm = TRUE, names = FALSE)))
@@ -405,19 +405,19 @@ cm_out <- reactive({
              min(sd_out()$UD,          na.rm = TRUE),
              min(cm_out()$DEPTH,       na.rm = TRUE))) # usually 0, lbr
  })
- 
+
      sp_ymax <- reactive({
        if(input$plot_scale == 1) {
          ceiling(max(max(plot_tbs()[, 3],   na.rm = TRUE),
                      max(plot_sd_out()$DEPTH, na.rm = TRUE),
                      max(plot_cm_out()$DEPTH, na.rm = TRUE)))
        } else if(input$plot_scale == 2) {
-         ceiling(max(quantile(unlist(to_be_splined()[, 3]),   probs = 0.75, 
+         ceiling(max(quantile(unlist(to_be_splined()[, 3]),   probs = 0.75,
                               na.rm = TRUE, names = FALSE),
                      quantile(sd_out()$LD, probs = 0.75, na.rm = TRUE, names = FALSE),
                      quantile(cm_out()$LD, probs = 0.75, na.rm = TRUE, names = FALSE)))
        } else if(input$plot_scale == 3) {
-         ceiling(max(quantile(unlist(to_be_splined()[, 3]),   probs = 0.95, 
+         ceiling(max(quantile(unlist(to_be_splined()[, 3]),   probs = 0.95,
                               na.rm = TRUE, names = FALSE),
                      quantile(sd_out()$LD, probs = 0.95, na.rm = TRUE, names = FALSE),
                      quantile(cm_out()$LD, probs = 0.95, na.rm = TRUE, names = FALSE)))
@@ -427,10 +427,10 @@ cm_out <- reactive({
                      max(cm_out()$LD, na.rm = TRUE)))
        }
      })
- 
+
  ## ggplot setup
  # deploy graph with tickyboxes for any combo of the three geoms
- 
+
  base_plot <- reactive({ ggplot() +
    scale_x_reverse(name = 'Soil Depth', limits = c(sp_ymax(), sp_ymin())) +
    scale_y_continuous(name = 'Analyte Value', limits = c(sp_xmin(), sp_xmax())) +
@@ -438,29 +438,29 @@ cm_out <- reactive({
           fill = guide_legend(override.aes = list(alpha = 0.5))) +
    coord_flip() +
    ggtitle('Spline data', subtitle = paste0('Site ', input$SID)) })
- 
+
  in_plot <- reactive({
    geom_rect(data    = plot_tbs(),
-             mapping = aes(ymin = plot_tbs()[, 4], ymax = sp_xmin(), 
+             mapping = aes(ymin = plot_tbs()[, 4], ymax = sp_xmin(),
                            xmin = plot_tbs()[, 2], xmax = plot_tbs()[, 3],
                            alpha = 0.5, fill = 'grey50')) })
  sd_plot <- reactive({
-   geom_step(data    = plot_sd_out(), 
+   geom_step(data    = plot_sd_out(),
              mapping = aes(x = DEPTH, y = SPLINED_VALUE, col = 'darkblue'),
              size    = 1) })
- 
+
  cm_plot <- reactive({
    geom_line(data    = plot_cm_out(),
              mapping = aes(x = DEPTH - 0.5, y = SPLINED_VALUE, col = 'red'),
              size    = 1) })
- 
+
  out_plot <- reactive({
-   
+
    req(input$SID)
    req(input$splinetime)
-   
+
    gopts <- input$pick_geoms
-   
+
    if(is.null(gopts)) {
      base_plot()
    } else if(!('1' %in% gopts) & !('2' %in% gopts) & !('3' %in% gopts)) {
@@ -481,32 +481,32 @@ cm_out <- reactive({
      base_plot() + in_plot() + sd_plot() + cm_plot() + sfm + scm
    }
  })
- 
+
  output$splineplot <- renderPlot({ out_plot() })
- 
-  output$splinetable_sd <- renderDataTable({ 
+
+  output$splinetable_sd <- renderDataTable({
     req(input$SID)
     req(input$splinetime)
     sd_out()[sd_out()$SID == input$SID, ] },
     options = list(lengthChange = FALSE, pageLength = 10,
     scrollX = FALSE, scrollY = '300px',
     paging = FALSE, searching = FALSE, info = FALSE))
-  
-  output$splinetable_cm <- renderDataTable({ 
+
+  output$splinetable_cm <- renderDataTable({
     req(input$SID)
     cm_out()[cm_out()$SID == input$SID, ] },
     options = list(lengthChange = FALSE, pageLength = 10,
                    scrollX = FALSE, scrollY = '300px',
                    paging = FALSE, searching = FALSE, info = FALSE))
 
-  
+
   ## DOWNLOADS
-  
+
   # Standard depths as CSV
   output$dl_sd <- downloadHandler(
     filename = function() {
       fn <- input$file_1
-      paste0(tools::file_path_sans_ext(fn$name), 
+      paste0(tools::file_path_sans_ext(fn$name),
              "_stdout_", format(Sys.Date(), '%Y%m%d'), ".csv")
     },
     content = function(file) {
@@ -515,12 +515,12 @@ cm_out <- reactive({
     },
     contentType = 'text/csv'
   )
-  
+
   # 1cm depths as CSV
   output$dl_1cm <- downloadHandler(
     filename = function() {
       fn <- input$file_1
-      paste0(tools::file_path_sans_ext(fn$name), 
+      paste0(tools::file_path_sans_ext(fn$name),
              "_cmsout_", format(Sys.Date(), '%Y%m%d'), ".csv")
     },
     content = function(file) {
@@ -529,7 +529,7 @@ cm_out <- reactive({
     },
     contentType = 'text/csv'
   )
-  
+
   # everything as RDS
   output$dl_rds <- downloadHandler(
     filename = function() {
@@ -542,10 +542,10 @@ cm_out <- reactive({
       saveRDS(splined(), file)
     }
   )
-  
+
   # plot as PNG
   output$dl_plot <- downloadHandler(
-    filename = function() { 
+    filename = function() {
       fn <- input$file_1
       paste0(tools::file_path_sans_ext(fn$name), '_Site_', input$SID, '_splineplot.png') },
     content = function(file) {
