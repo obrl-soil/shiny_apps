@@ -4,6 +4,7 @@ library(tidyr)
 library(readr)
 library(mpspline2)
 library(shiny)
+library(DT)
 options(stringsAsFactors = FALSE)
 
 # for plotting
@@ -60,7 +61,7 @@ ui <- fluidPage(
              conditionalPanel('input.SID',
                               tags$hr(),
                               tags$b("Input Data"),
-                              dataTableOutput('table_1'))
+                              DT::DTOutput('table_1'))
            )
            ),
 
@@ -185,8 +186,8 @@ tags$ul(tags$li('2022-04-17: Updated to use mpspline2, refreshed appearance.'),
               fluidRow(
                 conditionalPanel('input.SID && input.splinetime', tags$hr(),
                                  tags$h3('Splined output values'),
-                column(width = 6, tags$h4('Depth ranges'),  dataTableOutput('splinetable_sd')),
-                column(width = 6, tags$h4('1cm intervals'), dataTableOutput('splinetable_cm'))
+                column(width = 6, tags$h4('Depth ranges'),  DT::DTOutput('splinetable_sd')),
+                column(width = 6, tags$h4('1cm intervals'), DT::DTOutput('splinetable_cm'))
                 )
               ), conditionalPanel('input.SID && input.splinetime', tags$br(), tags$hr())),
 
@@ -232,7 +233,7 @@ server <- function(input, output, session) {
   })
 
   # display loaded data
-  output$table_1 <- renderDataTable({
+  output$table_1 <- DT::renderDT({
     req(input$SID)
     to_be_splined()[to_be_splined()[, 1] == input$SID, ]
     },
@@ -509,7 +510,7 @@ out_plot <- reactive({
 
  output$splineplot <- renderPlot({ out_plot() })
 
-  output$splinetable_sd <- renderDataTable({
+  output$splinetable_sd <- DT::renderDT({
     req(input$SID)
     req(input$splinetime)
     sd_out()[sd_out()$PROFILE_ID == input$SID, ] },
@@ -517,7 +518,7 @@ out_plot <- reactive({
     scrollX = FALSE, scrollY = '300px',
     paging = FALSE, searching = FALSE, info = FALSE))
 
-  output$splinetable_cm <- renderDataTable({
+  output$splinetable_cm <- DT::renderDT({
     req(input$SID)
     cm_out()[cm_out()$PROFILE_ID == input$SID, ] },
     options = list(lengthChange = FALSE, pageLength = 10,
