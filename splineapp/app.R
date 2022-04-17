@@ -32,18 +32,19 @@ ui <- fluidPage(
 
   fluidRow(
     column(width = 10,
-           fileInput(inputId     = 'file_1', label = 'Input CSV',
+           fileInput(inputId     = 'file_1',
+                     label       = 'Input CSV',
                      multiple    = FALSE,
                      accept      = c('text/csv',
                                      'text/comma-separated-values,text/plain',
                                      '.csv'),
                      width       = '100%',
-                     buttonLabel = 'Select File')),
+                     buttonLabel = 'Select CSV')),
     column(width = 2,
-           actionButton(inputId = "ld", label = "Load File", width = '100%')
-           ,style = 'margin-top: 25px; text-align: center;'
-           )
-    ),
+           actionButton(inputId = "ld",
+                        label   = "Upload CSV",
+                        width   = '100%'),
+           style = 'margin-top: 25px; text-align: center;')),
 
   fluidRow(
 
