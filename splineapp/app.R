@@ -48,7 +48,7 @@ ui <- fluidPage(
 
   fluidRow(
 
-    # sidebar
+    # Sidebar Panel
     column(width = 4,
            wellPanel(
              actionButton(inputId = 'splinetime', label = 'Calculate Splines', width = '100%',
@@ -64,11 +64,12 @@ ui <- fluidPage(
            )
            ),
 
-    # main
+    # Main Panel
     column(width = 8,
            tabsetPanel(id = 'maintabs',
+             ## About tab
              tabPanel(title = tags$h3('About'), value = 'Ipanel', tags$br(),
-                      tags$p(class = 'lead', 'This app is a web-based version of the ACLEP Spline Tool (Jacquier and Seaton, 2011), available from ', tags$a(href = 'http://www.asris.csiro.au/methods.html', 'the ASRIS methods page.'), ' The UI takes its cues from the standalone app, but depends on the ', tags$code('mpspline'), ' function developed for package ', tags$code('GSIF'), '.'), tags$hr(),
+                      tags$p(class = 'lead', 'This is a web-based version of the ACLEP Spline Tool (Jacquier and Seaton, 2011), available from ', tags$a(href = 'https://www.asris.csiro.au/methods.html', 'the ASRIS methods page.'), ' The UI takes its cues from the standalone app, but depends on the ', tags$a(href = 'https://CRAN.R-project.org/package=mpspline2 ', tags$code('mpspline2')), ' R package.'), tags$hr(),
                       tags$h4('Instructions for use'),
                       tags$p('The app expects source data in the form of a four-column csv with the following structure:'),
 tags$pre('> str(indat)
@@ -78,50 +79,13 @@ $ UD   : int  0 20 50 80 0 25 65 90 120
 $ LD   : int  10 30 60 90 10 35 80 100 135
 $ VALUE: num  7.6 7.5 6.5 3.2 7.5 7.6 6.3 3.4 4.3'),
                       tags$p('The first column is a site identifier and can be numeric or text. The next two columns are upper and lower sample depths respectively, measured in centimeters below ground level. The final column contains the attribute values to be splined.'),
-                      tags$p('Simply upload your csv and press the \'Calculate Splines\' button. Outputs can be viewed in the Plot tab, and customised in the Options tab. The Export tab will allow download of outputs in csv format, or as an rds file containing the R object returned by', tags$code('GSIF::mpspline'), '.'), tags$hr(),
+                      tags$p('Upload your csv and press the \'Calculate Splines\' button. Outputs can be customised in the Settings tab, and viewed in the Results tab. The Export tab will allow download of outputs in csv format, or as an rds file containing the R object returned by', tags$code('mpspline2::mpspline_tidy()'), '.'), tags$hr(),
 tags$h4('Update History'),
-tags$ul(tags$li('2017-10-23: Added plot scaling options, handled bug in lowest 1cm depth data'),
+tags$ul(tags$li('2022-04-17: Updated to use mpspline2, refreshed appearance.'),
+        tags$li('2017-10-23: Added plot scaling options, handled bug in lowest 1cm depth data'),
         tags$li('2017-10-22: App launch'))),
-             # output display
-             tabPanel(title = tags$h3('Plot'), value = 'Ppanel',
-              fluidRow(conditionalPanel('input.SID && input.splinetime',
-               column(width = 10, offset = 1, tags$br(), plotOutput('splineplot')),
-              fluidRow(
-                column(width = 6, offset = 1, tags$br(),
-                       checkboxGroupInput(inputId = 'pick_geoms',
-                                          label = NULL,
-                                          choices = list('Original' = 1,
-                                                         'Depth layers' = 2,
-                                                         '1cm increments' = 3),
-                                          selected = c(1,2,3),
-                                          inline = TRUE,
-                                          width = '100%')),
-                column(width = 4,
-                       downloadButton(outputId = 'dl_plot',
-                                                label = 'Save plot as png',
-                                                class = 'dlb-sml'),
-                       tags$head(tags$style(".dlb-sml{margin-top: 25px; width: 80%;}"))
-                       )),
-              fluidRow(column(width = 3, offset = 1,
-                              selectInput(inputId = 'plot_scale',
-                                          label   = 'Plot Scale',
-                                          choices = list('Scale to site'          = 1,
-                                                         'Scale to quantile 0.75' = 2,
-                                                         'Scale to quantile 0.95' = 3,
-                                                         'Scale to whole dataset' = 4),
-                                          selected = 1,
-                                          multiple = FALSE,
-                                          width = '80%')))), tags$br()
-              ), # end plot area
-              fluidRow(
-                conditionalPanel('input.SID && input.splinetime', tags$hr(),
-                                 tags$h3('Splined output values'),
-                column(width = 6, tags$h4('Depth ranges'),  dataTableOutput('splinetable_sd')),
-                column(width = 6, tags$h4('1cm intervals'), dataTableOutput('splinetable_cm'))
-                )
-              ), conditionalPanel('input.SID && input.splinetime', tags$br(), tags$hr())),
 
-             # settings
+             # Settings tab
              tabPanel(title = tags$h3('Settings'), value = 'Spanel',
                fluidRow(tags$br(),
                   column(width = 6,
@@ -187,6 +151,46 @@ tags$ul(tags$li('2017-10-23: Added plot scaling options, handled bug in lowest 1
                ) # end fluidRow
                ), # end Settings tabpanel
 
+             # Results tab
+             tabPanel(title = tags$h3('Results'), value = 'Ppanel',
+              fluidRow(conditionalPanel('input.SID && input.splinetime',
+               column(width = 10, offset = 1, tags$br(), plotOutput('splineplot')),
+              fluidRow(
+                column(width = 6, offset = 1, tags$br(),
+                       checkboxGroupInput(inputId = 'pick_geoms',
+                                          label = NULL,
+                                          choices = list('Original' = 1,
+                                                         'Depth layers' = 2,
+                                                         '1cm increments' = 3),
+                                          selected = c(1,2,3),
+                                          inline = TRUE,
+                                          width = '100%')),
+                column(width = 4,
+                       downloadButton(outputId = 'dl_plot',
+                                                label = 'Save plot as png',
+                                                class = 'dlb-sml'),
+                       tags$head(tags$style(".dlb-sml{margin-top: 25px; width: 80%;}"))
+                       )),
+              fluidRow(column(width = 3, offset = 1,
+                              selectInput(inputId = 'plot_scale',
+                                          label   = 'Plot Scale',
+                                          choices = list('Scale to site'          = 1,
+                                                         'Scale to quantile 0.75' = 2,
+                                                         'Scale to quantile 0.95' = 3,
+                                                         'Scale to whole dataset' = 4),
+                                          selected = 1,
+                                          multiple = FALSE,
+                                          width = '80%')))), tags$br()
+              ), # end plot area
+              fluidRow(
+                conditionalPanel('input.SID && input.splinetime', tags$hr(),
+                                 tags$h3('Splined output values'),
+                column(width = 6, tags$h4('Depth ranges'),  dataTableOutput('splinetable_sd')),
+                column(width = 6, tags$h4('1cm intervals'), dataTableOutput('splinetable_cm'))
+                )
+              ), conditionalPanel('input.SID && input.splinetime', tags$br(), tags$hr())),
+
+               #Exports tab
                tabPanel(title = tags$h3('Export'), value = 'Epanel',
                  fluidRow(tags$br(),
                    column(width = 6, offset = 3,
@@ -205,8 +209,7 @@ tags$ul(tags$li('2017-10-23: Added plot scaling options, handled bug in lowest 1
                            ) # end export wellpanel
                    ))) # end export tabpanel
              )) #end main
-    ),
-includeHTML('gtag.txt')
+    )
 )
 
 ####################################################################################################
