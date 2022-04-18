@@ -3,3 +3,4 @@
 .RData
 .Ruserdata
 /splineapp/testing.R
+/splineapp/rsconnect/*

@@ -227,7 +227,7 @@ server <- function(input, output, session) {
   to_be_splined <- eventReactive(input$ld, {
     in_file <- input$file_1
     req(in_file)
-    read_csv(in_file$datapath)
+    readr::read_csv(in_file$datapath)
     })
 
   # Feed SID choices from input df to drop-down box
@@ -282,7 +282,7 @@ observe({
   })
 
 # get custom lambda
-lambda      <- reactiveValues('val' = 0.1)
+lambda <- reactiveValues('val' = 0.1)
 
 observe({ lambda$val <- input$c_ld })
 
