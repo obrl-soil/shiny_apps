@@ -1,5 +1,6 @@
 # Shiny app to replicate Splinetool.exe
 library(ggplot2)
+library(dplyr)
 library(tidyr)
 library(readr)
 library(mpspline2)
@@ -309,14 +310,21 @@ splined <- eventReactive(input$splinetime, {
   use_minval <- out_lims$minval
   use_maxval <- out_lims$maxval
 
-  mpspline2::mpspline_tidy(
-    obj           = to_be_splined(),
-    var_name      = names(to_be_splined()[4]),
-    lam           = use_lambda,
-    d             = use_depths,
-    vlow          = use_minval,
-    vhigh         = use_maxval
-    )
+  sp <-
+    mpspline2::mpspline_tidy(
+      obj      = to_be_splined(),
+      var_name = names(to_be_splined()[4]),
+      lam      = use_lambda,
+      d        = use_depths,
+      vlow     = use_minval,
+      vhigh    = use_maxval
+      )
+
+  # 22-04-18 remove after mpspline2 0.1.7 hits CRAN
+  sp$est_1cm$UD = sp$est_1cm$UD - 1
+  sp$est_1cm$LD = sp$est_1cm$LD - 1
+
+  sp
   })
 
 # when 'Process Spline' button is clicked, jump to plot/output tab
