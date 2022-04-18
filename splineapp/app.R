@@ -71,7 +71,7 @@ ui <- fluidPage(
            tabsetPanel(id = 'maintabs',
              ## About tab
              tabPanel(title = tags$h3('About'), value = 'Ipanel', tags$br(),
-                      tags$p(class = 'lead', 'This is a web-based version of the ACLEP Spline Tool (Jacquier and Seaton, 2011), available from ', tags$a(href = 'https://www.asris.csiro.au/methods.html', 'the ASRIS methods page.'), ' The UI takes its cues from the standalone app, but depends on the ', tags$a(href = 'https://CRAN.R-project.org/package=mpspline2 ', tags$code('mpspline2')), ' R package.'), tags$hr(),
+                      tags$p(class = 'lead', 'This is a web-based version of the ACLEP Spline Tool (Jacquier and Seaton, 2011), available from ', tags$a(href = 'https://www.asris.csiro.au/methods.html', 'the ASRIS methods page.'), ' The UI takes its cues from the standalone app, but depends on the ', tags$a(href = 'https://github.com/obrl-soil/mpspline2', tags$code('mpspline2')), ' R package (v. 0.1.7).'), tags$hr(),
                       tags$h4('Instructions for use'),
                       tags$p('The app expects source data in the form of a four-column csv with the following structure:'),
 tags$pre('> str(indat)
@@ -310,21 +310,15 @@ splined <- eventReactive(input$splinetime, {
   use_minval <- out_lims$minval
   use_maxval <- out_lims$maxval
 
-  sp <-
-    mpspline2::mpspline_tidy(
-      obj      = to_be_splined(),
-      var_name = names(to_be_splined()[4]),
-      lam      = use_lambda,
-      d        = use_depths,
-      vlow     = use_minval,
-      vhigh    = use_maxval
+  mpspline2::mpspline_tidy(
+    obj      = to_be_splined(),
+    var_name = names(to_be_splined()[4]),
+    lam      = use_lambda,
+    d        = use_depths,
+    vlow     = use_minval,
+    vhigh    = use_maxval
       )
 
-  # 22-04-18 remove after mpspline2 0.1.7 hits CRAN
-  sp$est_1cm$UD = sp$est_1cm$UD - 1
-  sp$est_1cm$LD = sp$est_1cm$LD - 1
-
-  sp
   })
 
 # when 'Process Spline' button is clicked, jump to plot/output tab
