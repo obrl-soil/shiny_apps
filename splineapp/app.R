@@ -243,6 +243,7 @@ server <- function(input, output, session) {
     req(input$SID)
     to_be_splined()[to_be_splined()[, 1] == input$SID, ]
     },
+    rownames = FALSE,
     options = list(lengthChange = FALSE, pageLength = 10,
                    scrollX = FALSE, scrollY = '300px',
                    paging = FALSE, searching = FALSE, info = FALSE)
@@ -529,6 +530,7 @@ out_plot <- reactive({
     req(input$SID)
     req(input$splinetime)
     sd_out()[sd_out()$PROFILE_ID == input$SID, ] },
+    rownames = FALSE,
     options = list(lengthChange = FALSE, pageLength = 10,
     scrollX = FALSE, scrollY = '300px',
     paging = FALSE, searching = FALSE, info = FALSE))
@@ -536,6 +538,7 @@ out_plot <- reactive({
   output$splinetable_cm <- DT::renderDT({
     req(input$SID)
     cm_out()[cm_out()$PROFILE_ID == input$SID, ] },
+    rownames = FALSE,
     options = list(lengthChange = FALSE, pageLength = 10,
                    scrollX = FALSE, scrollY = '300px',
                    paging = FALSE, searching = FALSE, info = FALSE))
