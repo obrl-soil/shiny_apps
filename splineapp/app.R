@@ -28,7 +28,7 @@ scm2 <-
                                           'red'      = 'red'))
 
 ui <- fluidPage(
-  tags$head(includeHTML(("ga.html"))), # analytics
+  tags$head(includeHTML("ga.html")), # analytics
   titlePanel("SplineApp"),
   tags$hr(),
 
@@ -531,7 +531,7 @@ out_plot <- reactive({
   output$splinetable_sd <- DT::renderDT({
     req(input$SID)
     req(input$splinetime)
-    sd_out()[sd_out()$PROFILE_ID == input$SID, ] },
+    sd_out()[sd_out()[[1]] == input$SID, ] },
     rownames = FALSE,
     options = list(lengthChange = FALSE, pageLength = 10,
     scrollX = FALSE, scrollY = '300px',
@@ -539,7 +539,8 @@ out_plot <- reactive({
 
   output$splinetable_cm <- DT::renderDT({
     req(input$SID)
-    cm_out()[cm_out()$PROFILE_ID == input$SID, ] },
+    req(input$splinetime)
+    cm_out()[cm_out()[[1]] == input$SID, ] },
     rownames = FALSE,
     options = list(lengthChange = FALSE, pageLength = 10,
                    scrollX = FALSE, scrollY = '300px',
